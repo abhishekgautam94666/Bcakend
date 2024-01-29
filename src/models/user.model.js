@@ -26,11 +26,29 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
     avtar: {
-      type: String,
-      required: true,
+      url: {
+        type: String,
+        required: true,
+      },
+      secure_url: {
+        type: String,
+        required: true,
+      },
+      public_id: {
+        type: String,
+        required: true,
+      },
     },
     coverImage: {
-      type: String,
+      url: {
+        type: String,
+      },
+      secure_url: {
+        type: String,
+      },
+      public_id: {
+        type: String,
+      },
     },
     watchHistory: [
       {
@@ -55,7 +73,7 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-userSchema.methods.isPasswordCorrect = async function(password) {
+userSchema.methods.isPasswordCorrect = async function (password) {
   return await bcrypt.compare(password, this.password);
 };
 

@@ -2,7 +2,10 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  uploadOnCloudinary,
+  deleteFromCloudinary,
+} from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose";
 
@@ -36,6 +39,7 @@ const registerUser = asyncHandler(async (req, res) => {
   // return res
 
   const { fullname, email, username, password } = req.body;
+  console.log(fullname, email, username, password);
 
   if (
     [fullname, email, password, username].some((field) => field?.trim() === "")
@@ -73,10 +77,22 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Avtar files is required");
   }
 
+  console.log("avtar.url :", avtar.url);
+  console.log("avtar.secure_url :", avtar.secure_url);
+  console.log("avtar.public_id :", avtar.public_id);
+
   const user = await User.create({
     fullname,
-    avtar: avtar.url,
-    coverImage: coverImage?.url || "",
+    avtar: {
+      url: avtar.url,
+      secure_url: avtar.secure_url,
+      public_id: avtar.public_id,
+    },
+    coverImage: {
+      url: coverImage?.url || "",
+      secure_url: coverImage?.secure_url || "",
+      public_id: coverImage?.public_id || "",
+    },
     email,
     password,
     username: username.toLowerCase(),
@@ -111,17 +127,17 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "username or email is required");
   }
 
-  if (!username && !email) {
-    throw new Error("Username or email is required");
-  }
+  // let user;
 
-  let user;
+  // if (username) {
+  //   user = await User.findOne({ username });
+  // } else {
+  //   user = await User.findOne({ email });
+  // }
 
-  if (username) {
-    user = await User.findOne({ username });
-  } else {
-    user = await User.findOne({ email });
-  }
+  const user = await User.findOne({
+    $or: [{ username }, { email }],
+  });
 
   if (!user) {
     throw new ApiError(404, "User does not exit");
@@ -291,12 +307,17 @@ const updateAcoountDetails = asyncHandler(async (req, res) => {
 
 // ------- updateUserAvatar user --------------
 const updateUserAvtar = asyncHandler(async (req, res) => {
+  const oldUser = await User.findById(req.user._id);
+  const public_id = await oldUser.avtar?.public_id;
+  await deleteFromCloudinary(public_id);
+
   const avtarLocalPath = req.file?.path;
   if (!avtarLocalPath) {
     throw new ApiError(400, "Avtar file is missing");
   }
 
   const avtar = await uploadOnCloudinary(avtarLocalPath);
+
   if (!avtar.url) {
     throw new ApiError(400, "Error while uploadinng on avtar");
   }
@@ -307,13 +328,17 @@ const updateUserAvtar = asyncHandler(async (req, res) => {
     req.user?._id,
     {
       $set: {
-        avtar: avtar.url,
+        avtar: {
+          url: avtar.url,
+          secure_url: avtar.secure_url,
+          public_id: avtar.public_id,
+        },
       },
     },
     {
       new: true,
     }
-  ).select("-password");
+  ).select("-password -refreshToken -email -watchHistory");
 
   return res
     .status(200)
@@ -322,6 +347,10 @@ const updateUserAvtar = asyncHandler(async (req, res) => {
 
 // ------- updateUsercoverImage user --------------
 const updateUserCoverImage = asyncHandler(async (req, res) => {
+  const oldUser = await User.findById(req.user._id);
+  const public_id = await oldUser.coverImage?.public_id;
+  await deleteFromCloudinary(public_id);
+
   const coverImageLocalPath = req.file?.path;
   if (!coverImageLocalPath) {
     throw new ApiError(400, "coverImage file is missing");
