@@ -309,7 +309,7 @@ const updateAcoountDetails = asyncHandler(async (req, res) => {
 const updateUserAvtar = asyncHandler(async (req, res) => {
   const oldUser = await User.findById(req.user._id);
   const public_id = await oldUser.avtar?.public_id;
-  await deleteFromCloudinary(public_id);
+  await deleteFromCloudinary(public_id, "image");
 
   const avtarLocalPath = req.file?.path;
   if (!avtarLocalPath) {
@@ -349,7 +349,7 @@ const updateUserAvtar = asyncHandler(async (req, res) => {
 const updateUserCoverImage = asyncHandler(async (req, res) => {
   const oldUser = await User.findById(req.user._id);
   const public_id = await oldUser.coverImage?.public_id;
-  await deleteFromCloudinary(public_id);
+  await deleteFromCloudinary(public_id, "image");
 
   const coverImageLocalPath = req.file?.path;
   if (!coverImageLocalPath) {

@@ -25,36 +25,37 @@ const uploadOnCloudinary = async (localFilePath) => {
   }
 };
 
-const deleteFromCloudinary = async (publicId) => {
+// const deleteFromCloudinary = async (publicId) => {
+//   try {
+//     if (!publicId) return null;
+//     Delete the image from Cloudinary
+//     const response = await cloudinary.uploader.destroy(publicId);
+//     console.log("Image deleted from Cloudinary");
+
+//     return response;
+//   } catch (error) {
+//     console.error("Error deleting image from Cloudinary: ", error);
+
+//     return null;
+//   }
+// };
+
+
+const deleteFromCloudinary = async (publicId, resource_type) => {
   try {
-    if (!publicId) return null;
-    // Delete the image from Cloudinary
-    const response = await cloudinary.uploader.destroy(publicId);
-    console.log("Image deleted from Cloudinary");
-    fs.unlinkSync(localFilePath);
+    if (!publicId) {
+      return null;
+    }
+    const response = cloudinary.api.delete_resources([publicId], {
+      type: "upload",
+      invalidate: true,
+      resource_type: resource_type,
+    });
+    
     return response;
   } catch (error) {
-    console.error("Error deleting image from Cloudinary: ", error);
-    fs.unlinkSync(localFilePath);
-    return null;
+    throw new ApiError(400, error.message);
   }
 };
 
 export { uploadOnCloudinary, deleteFromCloudinary };
-
-// const deleteFromCloudinary = async (publicId, resource_type) => {
-//   try {
-//     if (!publicId) {
-//       return null;
-//     }
-//     const response = cloudinary.api.delete_resources([publicId], {
-//       type: "upload",
-//       invalidate: true,
-//       resource_type: resource_type,
-//     });
-
-//     return response;
-//   } catch (error) {
-//     throw new ApiError(400, error.message);
-//   }
-// };
